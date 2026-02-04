@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎓 Degree To Desk</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { scroll-behavior: smooth; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+        .nav-link { position: relative; }
+        .nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px; background: white; transition: width 0.3s; }
+        .nav-link:hover::after { width: 100%; }
+        .modal { backdrop-filter: blur(5px); }
+        .password-strength { height: 4px; transition: all 0.3s; }
+        .slide-in { animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        /* Chatbot Styles */
+        .chatbot-container { 
+            position: fixed; 
+            bottom: 20px; 
+            right: 20px; 
+            z-index: 1000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .chatbot-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .chatbot-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .chatbot-window {
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            width: 380px;
+            height: 550px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: scale(0);
+            transform-origin: bottom right;
+            transition: transform 0.3s ease;
+        }
+        .chatbot-window.open {
+            transform: scale(1);
+        }
+        .chatbot-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chatbot-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 16px;
+            display: flex;
+            animation: messageSlide 0.3s ease;
+        }
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.user {
+            justify-content: flex-end;
+        }
+        .message-content {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .chatbot-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+        .chatbot-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .chatbot-input:focus {
+            border-color: #667eea;
+        }
+        .chatbot-send {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        .chatbot-send:hover:not(:disabled) {
+            transform: scale(1.1);
+        }
+        .chatbot-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 18px;
+            width: fit-content;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: typing 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 20px 10px 20px;
+            background: #f8f9fa;
+        }
+        .quick-action-btn {
+            padding: 8px 14px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #667eea;
+        }
+        .quick-action-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        @media (max-width: 480px) {
+            .chatbot-window {
+                width: calc(100vw - 40px);
+                height: calc(100vh - 100px);
+                bottom: 80px;
+                right: 20px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation Bar -->
+    <nav id="navbar" class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-graduation-cap text-2xl"></i>
+                    <span class="text-xl font-bold">Degree To Desk</span>
+                </div>
+                
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#" onclick="showPage('home')" class="nav-link hover:text-gray-200">Home</a>
+                    <a href="#" onclick="showPage('portal')" class="nav-link hover:text-gray-200">Portal</a>
+                    <a href="#" onclick="showPage('profile')" class="nav-link hover:text-gray-200" id="profileLink">Profile</a>
+                    <div id="authButtons" class="flex space-x-4">
+                        <button onclick="showModal('login')" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition">Login</button>
+                        <button onclick="showModal('signup')" class="border-2 border-white px-4 py-2 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">Sign Up</button>
+                    </div>
+                    <div id="userMenu" class="hidden flex items-center space-x-4">
+                        <span id="userName" class="font-semibold"></span>
+                        <button onclick="logout()" class="bg-red-500 px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition">Logout</button>
+                    </div>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <button class="md:hidden" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden pb-4">
+                <a href="#" onclick="showPage('home'); toggleMobileMenu();" class="block py-2">Home</a>
+                <a href="#" onclick="showPage('portal'); toggleMobileMenu();" class="block py-2">Portal</a>
+                <a href="#" onclick="showPage('profile'); toggleMobileMenu();" class="block py-2">Profile</a>
+                <div id="mobileAuthButtons" class="mt-4 space-y-2">
+                    <button onclick="showModal('login'); toggleMobileMenu();" class="w-full bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold">Login</button>
+                    <button onclick="showModal('signup'); toggleMobileMenu();" class="w-full border-2 border-white px-4 py-2 rounded-lg font-semibold">Sign Up</button>
+                </div>
+                <div id="mobileUserMenu" class="hidden mt-4">
+                    <span id="mobileUserName" class="block py-2 font-semibold"></span>
+                    <button onclick="logout()" class="w-full bg-red-500 px-4 py-2 rounded-lg font-semibold">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="hidden fixed inset-0 bg-black/50 modal flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md slide-in">
+            <div class="gradient-bg text-white p-6 rounded-t-2xl">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold">Welcome Back!</h2>
+                    <button onclick="hideModal('login')" class="text-2xl hover:text-gray-200">&times;</button>
+                </div>
+            </div>
+            <form id="loginForm" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Login As</label>
+                    <select id="loginRole" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
+                        <option value="student">Student</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Email</label>
+                    <input type="email" id="loginEmail" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="your@email.com" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Password</label>
+                    <div class="relative">
+                        <input type="password" id="loginPassword" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="••••••••" required>
+                        <button type="button" onclick="togglePassword('loginPassword')" class="absolute right-3 top-3 text-gray-500">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition">Login</button>
+                <p class="text-center text-gray-600">Don't have an account? <a href="#" onclick="hideModal('login'); showModal('signup');" class="text-purple-600 font-semibold">Sign Up</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div id="signupModal" class="hidden fixed inset-0 bg-black/50 modal flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto slide-in">
+            <div class="gradient-bg text-white p-6 rounded-t-2xl sticky top-0">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold">Create Account</h2>
+                    <button onclick="hideModal('signup')" class="text-2xl hover:text-gray-200">&times;</button>
+                </div>
+            </div>
+            <form id="signupForm" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Account Type</label>
+                    <select id="signupRole" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none">
+                        <option value="student">Student</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Full Name</label>
+                    <input type="text" id="signupName" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="John Doe" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Email</label>
+                    <input type="email" id="signupEmail" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="your@email.com" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Password</label>
+                    <div class="relative">
+                        <input type="password" id="signupPassword" oninput="checkPasswordStrength()" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="••••••••" required>
+                        <button type="button" onclick="togglePassword('signupPassword')" class="absolute right-3 top-3 text-gray-500">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <div id="passwordStrengthBar" class="password-strength bg-gray-200 rounded-full">
+                            <div id="passwordStrengthFill" class="h-full rounded-full transition-all" style="width: 0%"></div>
+                        </div>
+                        <p id="passwordStrengthText" class="text-sm mt-1"></p>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Confirm Password</label>
+                    <input type="password" id="signupConfirmPassword" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition">Create Account</button>
+                <p class="text-center text-gray-600">Already have an account? <a href="#" onclick="hideModal('signup'); showModal('login');" class="text-purple-600 font-semibold">Login</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Modal -->
+    <div id="applicationModal" class="hidden fixed inset-0 bg-black/50 modal flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto slide-in">
+            <div class="gradient-bg text-white p-6 rounded-t-2xl sticky top-0">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold">Apply for <span id="applyJobTitle"></span></h2>
+                    <button onclick="hideModal('application')" class="text-2xl hover:text-gray-200">&times;</button>
+                </div>
+            </div>
+            <form id="applicationForm" class="p-6 space-y-4">
+                <input type="hidden" id="applyJobId">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Full Name *</label>
+                        <input type="text" id="appName" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Phone Number *</label>
+                        <input type="tel" id="appPhone" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Email *</label>
+                    <input type="email" id="appEmail" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Department *</label>
+                        <select id="appDepartment" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                            <option value="">Select Department</option>
+                            <option value="CSE">Computer Science & Engineering</option>
+                            <option value="ECE">Electronics & Communication</option>
+                            <option value="EEE">Electrical & Electronics</option>
+                            <option value="ME">Mechanical Engineering</option>
+                            <option value="CE">Civil Engineering</option>
+                            <option value="IT">Information Technology</option>
+                            <option value="MBA">Master of Business Administration</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Year of Study *</label>
+                        <select id="appYear" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                            <option value="">Select Year</option>
+                            <option value="1">1st Year</option>
+                            <option value="2">2nd Year</option>
+                            <option value="3">3rd Year</option>
+                            <option value="4">4th Year</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">CGPA *</label>
+                        <input type="number" step="0.01" min="0" max="10" id="appCGPA" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Backlogs</label>
+                        <input type="number" min="0" id="appBacklogs" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" value="0">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Skills (comma separated)</label>
+                    <input type="text" id="appSkills" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="Python, JavaScript, SQL...">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Resume (PDF) *</label>
+                    <input type="file" id="appResume" accept=".pdf" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Cover Letter</label>
+                    <textarea id="appCoverLetter" rows="4" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="Tell us why you're a great fit..."></textarea>
+                </div>
+                <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition">Submit Application</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="hidden fixed top-24 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 slide-in">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-check-circle"></i>
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+
+    <!-- AI Chatbot -->
+    <div class="chatbot-container">
+        <div id="chatbotWindow" class="chatbot-window">
+            <div class="chatbot-header">
+                <div>
+                    <h3 class="font-bold text-lg">Career Assistant</h3>
+                    <p class="text-sm opacity-90">Ask me anything about placements!</p>
+                </div>
+                <button onclick="toggleChatbot()" class="text-white hover:text-gray-200">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="quick-actions" id="quickActions">
+                <button class="quick-action-btn" onclick="sendQuickMessage('What jobs are available?')">
+                    <i class="fas fa-briefcase"></i> Available Jobs
+                </button>
+                <button class="quick-action-btn" onclick="sendQuickMessage('How do I prepare for interviews?')">
+                    <i class="fas fa-user-tie"></i> Interview Tips
+                </button>
+                <button class="quick-action-btn" onclick="sendQuickMessage('Tell me about top companies')">
+                    <i class="fas fa-building"></i> Top Companies
+                </button>
+            </div>
+            
+            <div id="chatbotMessages" class="chatbot-messages">
+                <div class="message bot">
+                    <div class="message-content">
+                        👋 Hi! I'm your Career Assistant. I can help you with:
+                        <br><br>
+                        • Finding job opportunities
+                        <br>• Interview preparation tips
+                        <br>• Resume guidance
+                        <br>• Career advice
+                        <br><br>
+                        How can I assist you today?
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chatbot-input-area">
+                <input 
+                    type="text" 
+                    id="chatbotInput" 
+                    class="chatbot-input" 
+                    placeholder="Ask me anything..."
+                    onkeypress="handleChatKeyPress(event)"
+                >
+                <button id="chatbotSend" class="chatbot-send" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+        
+        <button id="chatbotButton" class="chatbot-button" onclick="toggleChatbot()">
+            <i class="fas fa-comments"></i>
+        </button>
+    </div>
+
+    <!-- Main Content Container -->
+    <main id="mainContent">
+        <!-- Home Page -->
+        <div id="homePage" class="page">
+            <!-- Hero Section -->
+            <section class="gradient-bg text-white py-20">
+                <div class="max-w-7xl mx-auto px-4 text-center">
+                    <h1 class="text-4xl md:text-6xl font-bold mb-6">Your Gateway to <span class="text-yellow-300">Dream Career</span></h1>
+                    <p class="text-xl md:text-2xl mb-8 opacity-90">Connect with top companies, discover opportunities, and launch your career</p>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <button onclick="showPage('portal')" class="bg-white text-purple-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition">Explore Opportunities</button>
+                        <button onclick="showModal('signup')" class="border-2 border-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-purple-600 transition">Get Started</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stats Section -->
+            <section class="py-16 bg-white">
+                <div class="max-w-7xl mx-auto px-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                        <div class="text-center card-hover p-6 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100">
+                            <div class="text-4xl md:text-5xl font-bold text-purple-600 mb-2" id="statsHired">2,500+</div>
+                            <p class="text-gray-600 font-semibold">Freshers Hired</p>
+                            <a href="#" onclick="showPage('portal')" class="text-purple-600 text-sm hover:underline">View Portal →</a>
+                        </div>
+                        <div class="text-center card-hover p-6 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100">
+                            <div class="text-4xl md:text-5xl font-bold text-blue-600 mb-2">150+</div>
+                            <p class="text-gray-600 font-semibold">Partner Companies</p>
+                        </div>
+                        <div class="text-center card-hover p-6 rounded-xl bg-gradient-to-br from-green-50 to-green-100">
+                            <div class="text-4xl md:text-5xl font-bold text-green-600 mb-2">50+</div>
+                            <p class="text-gray-600 font-semibold">Top Colleges</p>
+                        </div>
+                        <div class="text-center card-hover p-6 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100">
+                            <div class="text-4xl md:text-5xl font-bold text-orange-600 mb-2">95%</div>
+                            <p class="text-gray-600 font-semibold">Placement Rate</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Companies Hiring Section -->
+            <section class="py-16 bg-gray-50">
+                <div class="max-w-7xl mx-auto px-4">
+                    <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">Companies Actively Hiring</h2>
+                    <p class="text-gray-600 text-center mb-12">Top companies looking for talented freshers and interns</p>
+                    
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="companiesGrid">
+                        <!-- Companies will be populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Top Colleges Section -->
+            <section class="py-16 bg-white">
+                <div class="max-w-7xl mx-auto px-4">
+                    <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">Top Recruiting Colleges</h2>
+                    <p class="text-gray-600 text-center mb-12">Institutions with highest placement records</p>
+                    
+                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6" id="collegesGrid">
+                        <!-- Colleges will be populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Skills Section -->
+            <section class="py-16 gradient-bg text-white">
+                <div class="max-w-7xl mx-auto px-4">
+                    <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">In-Demand Skills</h2>
+                    <p class="text-center mb-12 opacity-90">Skills that top companies are looking for</p>
+                    
+                    <div class="flex flex-wrap justify-center gap-4" id="skillsGrid">
+                        <!-- Skills will be populated by JS -->
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Portal Page -->
+        <div id="portalPage" class="page hidden">
+            <section class="py-12">
+                <div class="max-w-7xl mx-auto px-4">
+                    <div class="flex flex-wrap justify-between items-center mb-8">
+                        <h1 class="text-3xl font-bold text-gray-800">Placement Portal</h1>
+                        <div class="flex gap-4 mt-4 md:mt-0">
+                            <select id="filterType" onchange="filterJobs()" class="border-2 border-gray-200 rounded-lg px-4 py-2 focus:border-purple-500 focus:outline-none">
+                                <option value="all">All Types</option>
+                                <option value="internship">Internships</option>
+                                <option value="job">Full-time Jobs</option>
+                            </select>
+                            <select id="filterDept" onchange="filterJobs()" class="border-2 border-gray-200 rounded-lg px-4 py-2 focus:border-purple-500 focus:outline-none">
+                                <option value="all">All Departments</option>
+                                <option value="CSE">CSE</option>
+                                <option value="ECE">ECE</option>
+                                <option value="EEE">EEE</option>
+                                <option value="ME">ME</option>
+                                <option value="IT">IT</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Notifications Banner -->
+                    <div id="notificationBanner" class="hidden bg-gradient-to-r from-green-500 to-emerald-500 text-white p-4 rounded-xl mb-8 slide-in">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-bell text-2xl pulse"></i>
+                                <div>
+                                    <p class="font-bold">New Opportunity Posted!</p>
+                                    <p id="notificationText" class="text-sm opacity-90"></p>
+                                </div>
+                            </div>
+                            <button onclick="hideNotification()" class="text-white hover:text-gray-200">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Jobs Grid -->
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="jobsGrid">
+                        <!-- Jobs will be populated by JS -->
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Profile/Dashboard Page -->
+        <div id="profilePage" class="page hidden">
+            <!-- Student Dashboard -->
+            <div id="studentDashboard" class="hidden">
+                <section class="py-12">
+                    <div class="max-w-7xl mx-auto px-4">
+                        <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+                            <div class="gradient-bg text-white p-8">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user text-4xl"></i>
+                                    </div>
+                                    <div>
+                                        <h1 class="text-2xl font-bold" id="studentName">Student Name</h1>
+                                        <p class="opacity-90" id="studentEmail">student@email.com</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <h2 class="text-xl font-bold mb-4">Quick Stats</h2>
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div class="text-center p-4 bg-purple-50 rounded-xl">
+                                        <div class="text-2xl font-bold text-purple-600" id="studentApplied">0</div>
+                                        <p class="text-gray-600 text-sm">Applied</p>
+                                    </div>
+                                    <div class="text-center p-4 bg-green-50 rounded-xl">
+                                        <div class="text-2xl font-bold text-green-600" id="studentShortlisted">0</div>
+                                        <p class="text-gray-600 text-sm">Shortlisted</p>
+                                    </div>
+                                    <div class="text-center p-4 bg-blue-50 rounded-xl">
+                                        <div class="text-2xl font-bold text-blue-600" id="studentInterviews">0</div>
+                                        <p class="text-gray-600 text-sm">Interviews</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 class="text-2xl font-bold mb-6">My Applications</h2>
+                        <div id="myApplications" class="space-y-4">
+                            <!-- Applications will be populated by JS -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Admin Dashboard -->
+            <div id="adminDashboard" class="hidden">
+                <section class="py-12">
+                    <div class="max-w-7xl mx-auto px-4">
+                        <div class="flex flex-wrap justify-between items-center mb-8">
+                            <h1 class="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+                            <button onclick="showPostJobForm()" class="gradient-bg text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition">
+                                <i class="fas fa-plus mr-2"></i>Post New Job
+                            </button>
+                        </div>
+
+                        <!-- Admin Stats -->
+                        <div class="grid md:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-gray-500">Total Jobs</p>
+                                        <p class="text-3xl font-bold text-purple-600" id="adminTotalJobs">0</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-briefcase text-purple-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-gray-500">Applications</p>
+                                        <p class="text-3xl font-bold text-blue-600" id="adminTotalApps">0</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-file-alt text-blue-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-gray-500">Students</p>
+                                        <p class="text-3xl font-bold text-green-600" id="adminTotalStudents">0</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-users text-green-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-lg card-hover">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-gray-500">Active</p>
+                                        <p class="text-3xl font-bold text-orange-600" id="adminActiveJobs">0</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-clock text-orange-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Post Job Form -->
+                        <div id="postJobForm" class="hidden bg-white rounded-2xl shadow-lg p-8 mb-8 slide-in">
+                            <h2 class="text-2xl font-bold mb-6">Post New Job/Internship</h2>
+                            <form id="newJobForm" class="space-y-4">
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-2">Company Name *</label>
+                                        <input type="text" id="jobCompany" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-2">Job Title *</label>
+                                        <input type="text" id="jobTitle" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                                    </div>
+                                </div>
+                                <div class="grid md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-2">Type *</label>
+                                        <select id="jobType" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                                            <option value="internship">Internship</option>
+                                            <option value="job">Full-time Job</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-2">Salary/Stipend *</label>
+                                        <input type="text" id="jobSalary" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="e.g., ₹50,000/month" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-2">Location *</label>
+                                        <input type="text" id="jobLocation" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                                    </div>
+                                </div>
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-2">Eligible Departments *</label>
+                                        <input type="text" id="jobDepts" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="CSE, ECE, IT" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-2">Application Deadline *</label>
+                                        <input type="date" id="jobDeadline" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2">Required Skills *</label>
+                                    <input type="text" id="jobSkills" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" placeholder="Python, JavaScript, SQL" required>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2">Job Description *</label>
+                                    <textarea id="jobDescription" rows="4" class="w-full border-2 border-gray-200 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none" required></textarea>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="sendNotification" checked class="w-5 h-5 text-purple-600 rounded">
+                                    <label class="text-gray-700">Send email notification to all students</label>
+                                </div>
+                                <div class="flex gap-4">
+                                    <button type="submit" class="gradient-bg text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition">Post Job</button>
+                                    <button type="button" onclick="hidePostJobForm()" class="bg-gray-300 text-gray-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-400 transition">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Tabs -->
+                        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                            <div class="flex border-b">
+                                <button onclick="showAdminTab('jobs')" id="tabJobs" class="flex-1 py-4 text-center font-semibold text-purple-600 border-b-2 border-purple-600">Posted Jobs</button>
+                                <button onclick="showAdminTab('applications')" id="tabApplications" class="flex-1 py-4 text-center font-semibold text-gray-500 hover:text-purple-600">Applications</button>
+                            </div>
+                            
+                            <div id="adminJobsTab" class="p-6">
+                                <div id="adminJobsList" class="space-y-4">
+                                    <!-- Jobs will be populated by JS -->
+                                </div>
+                            </div>
+                            
+                            <div id="adminApplicationsTab" class="hidden p-6">
+                                <div id="adminApplicationsList" class="space-y-4">
+                                    <!-- Applications will be populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Not Logged In -->
+            <div id="notLoggedIn" class="text-center py-20">
+                <i class="fas fa-lock text-6xl text-gray-300 mb-6"></i>
+                <h2 class="text-2xl font-bold text-gray-700 mb-4">Please Login to Access Your Profile</h2>
+                <p class="text-gray-500 mb-8">Login to view your dashboard, applications, and more</p>
+                <button onclick="showModal('login')" class="gradient-bg text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition">Login Now</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fas fa-graduation-cap text-2xl"></i>
+                        <span class="text-xl font-bold">Degree To Desk</span>
+                    </div>
+                    <p class="text-gray-400">Your trusted partner for campus placements and career opportunities.</p>
+                </div>
+                <div>
+                    <h3 class="font-bold mb-4">Quick Links</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" onclick="showPage('home')" class="hover:text-white">Home</a></li>
+                        <li><a href="#" onclick="showPage('portal')" class="hover:text-white">Portal</a></li>
+                        <li><a href="#" onclick="showPage('profile')" class="hover:text-white">Profile</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold mb-4">Contact Us</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><i class="fas fa-envelope mr-2"></i>support@degreetodesk.com</li>
+                        <li><i class="fas fa-phone mr-2"></i>+91 9876543210</li>
+                        <li><i class="fas fa-map-marker-alt mr-2"></i>Bangalore, India</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold mb-4">Follow Us</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-purple-600 transition"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-purple-600 transition"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-purple-600 transition"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-purple-600 transition"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 Degree To Desk. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Data
+        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let jobs = JSON.parse(localStorage.getItem('jobs')) || getDefaultJobs();
+        let applications = JSON.parse(localStorage.getItem('applications')) || [];
+        let chatHistory = [];
+        let isChatbotOpen = false;
+
+        // Default Data
+        function getDefaultJobs() {
+            return [
+                {
+                    id: 1,
+                    company: "Google",
+                    title: "Software Engineer Intern",
+                    type: "internship",
+                    salary: "₹80,000/month",
+                    location: "Bangalore",
+                    departments: ["CSE", "IT", "ECE"],
+                    skills: ["Python", "Data Structures", "Algorithms"],
+                    description: "Join Google's engineering team and work on cutting-edge projects that impact millions of users worldwide.",
+                    deadline: "2024-03-15",
+                    logo: "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png",
+                    posted: "2024-01-15"
+                },
+                {
+                    id: 2,
+                    company: "Microsoft",
+                    title: "Full Stack Developer",
+                    type: "job",
+                    salary: "₹15-20 LPA",
+                    location: "Hyderabad",
+                    departments: ["CSE", "IT"],
+                    skills: ["React", "Node.js", "Azure"],
+                    description: "Build next-generation applications using Microsoft's cloud technologies and modern frameworks.",
+                    deadline: "2024-03-20",
+                    logo: "https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE1Mu3b?ver=5c31",
+                    posted: "2024-01-10"
+                },
+                {
+                    id: 3,
+                    company: "Amazon",
+                    title: "SDE Intern",
+                    type: "internship",
+                    salary: "₹60,000/month",
+                    location: "Chennai",
+                    departments: ["CSE", "IT", "ECE"],
+                    skills: ["Java", "AWS", "System Design"],
+                    description: "Experience working at scale with Amazon's world-class infrastructure and delivery systems.",
+                    deadline: "2024-03-25",
+                    logo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
+                    posted: "2024-01-12"
+                },
+                {
+                    id: 4,
+                    company: "TCS",
+                    title: "Software Developer",
+                    type: "job",
+                    salary: "₹7-10 LPA",
+                    location: "Multiple Locations",
+                    departments: ["CSE", "IT", "ECE", "EEE", "ME"],
+                    skills: ["Java", "SQL", "Agile"],
+                    description: "Join India's largest IT services company and work on diverse global projects.",
+                    deadline: "2024-04-01",
+                    logo: "https://www.tcs.com/content/dam/global-tcs/en/images/home/dark-theme.svg",
+                    posted: "2024-01-08"
+                },
+                {
+                    id: 5,
+                    company: "Infosys",
+                    title: "Systems Engineer",
+                    type: "job",
+                    salary: "₹6-8 LPA",
+                    location: "Mysore",
+                    departments: ["CSE", "IT", "ECE"],
+                    skills: ["Python", "Java", "Database"],
+                    description: "Transform businesses with innovative solutions at one of India's premier IT companies.",
+                    deadline: "2024-04-05",
+                    logo: "https://www.infosys.com/content/dam/infosys-web/en/global-resource/background-image/infosys-logo.png",
+                    posted: "2024-01-05"
+                },
+                {
+                    id: 6,
+                    company: "Meta",
+                    title: "Data Science Intern",
+                    type: "internship",
+                    salary: "₹1,00,000/month",
+                    location: "Remote",
+                    departments: ["CSE", "IT"],
+                    skills: ["Python", "Machine Learning", "SQL"],
+                    description: "Work on data-driven solutions that connect billions of people around the world.",
+                    deadline: "2024-03-30",
+                    logo: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg",
+                    posted: "2024-01-14"
+                }
+            ];
+        }
+
+        const companies = [
+            { name: "Google", logo: "fab fa-google", openings: 25, type: "Tech Giant" },
+            { name: "Microsoft", logo: "fab fa-microsoft", openings: 30, type: "Tech Giant" },
+            { name: "Amazon", logo: "fab fa-amazon", openings: 45, type: "E-commerce" },
+            { name: "Apple", logo: "fab fa-apple", openings: 15, type: "Tech Giant" },
+            { name: "Meta", logo: "fab fa-facebook", openings: 20, type: "Social Media" },
+            { name: "Netflix", logo: "fas fa-film", openings: 10, type: "Entertainment" }
+        ];
+
+        const colleges = [
+            { name: "IIT Bombay", placements: 98, avgPackage: "₹25 LPA" },
+            { name: "IIT Delhi", placements: 97, avgPackage: "₹24 LPA" },
+            { name: "BITS Pilani", placements: 95, avgPackage: "₹18 LPA" },
+            { name: "NIT Trichy", placements: 92, avgPackage: "₹14 LPA" }
+        ];
+
+        const skills = ["Python", "JavaScript", "Java", "React", "Node.js", "SQL", "Machine Learning", "Data Science", "Cloud Computing", "DevOps", "System Design", "C++"];
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            renderCompanies();
+            renderColleges();
+            renderSkills();
+            renderJobs();
+            updateAuthUI();
+            setupFormHandlers();
+        }
+
+        // Render Functions
+        function renderCompanies() {
+            const grid = document.getElementById('companiesGrid');
+            grid.innerHTML = companies.map(company => `
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <div class="w-14 h-14 gradient-bg rounded-full flex items-center justify-center">
+                            <i class="${company.logo} text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">${company.name}</h3>
+                            <p class="text-gray-500">${company.type}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-semibold">${company.openings} Openings</span>
+                        <button onclick="showPage('portal')" class="text-purple-600 font-semibold hover:text-purple-800">View Jobs →</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderColleges() {
+            const grid = document.getElementById('collegesGrid');
+            grid.innerHTML = colleges.map(college => `
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover text-center">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-university text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">${college.name}</h3>
+                    <p class="text-green-600 font-semibold">${college.placements}% Placed</p>
+                    <p class="text-gray-500 text-sm">Avg: ${college.avgPackage}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderSkills() {
+            const grid = document.getElementById('skillsGrid');
+            grid.innerHTML = skills.map(skill => `
+                <span class="bg-white/20 px-6 py-3 rounded-full font-semibold hover:bg-white/30 transition cursor-default">${skill}</span>
+            `).join('');
+        }
+
+        function renderJobs() {
+            const grid = document.getElementById('jobsGrid');
+            const filterType = document.getElementById('filterType')?.value || 'all';
+            const filterDept = document.getElementById('filterDept')?.value || 'all';
+            
+            let filteredJobs = jobs.filter(job => {
+                const typeMatch = filterType === 'all' || job.type === filterType;
+                const deptMatch = filterDept === 'all' || job.departments.includes(filterDept);
+                return typeMatch && deptMatch;
+            });
+
+            if (filteredJobs.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500"><i class="fas fa-search text-4xl mb-4"></i><p>No jobs found matching your criteria</p></div>';
+                return;
+            }
+
+            grid.innerHTML = filteredJobs.map(job => `
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-building text-purple-600 text-xl"></i>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${job.type === 'internship' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'}">
+                                ${job.type === 'internship' ? 'Internship' : 'Full-time'}
+                            </span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-1">${job.title}</h3>
+                        <p class="text-purple-600 font-semibold mb-3">${job.company}</p>
+                        <div class="space-y-2 text-gray-600 text-sm mb-4">
+                            <p><i class="fas fa-map-marker-alt mr-2"></i>${job.location}</p>
+                            <p><i class="fas fa-money-bill-wave mr-2"></i>${job.salary}</p>
+                            <p><i class="fas fa-calendar mr-2"></i>Deadline: ${formatDate(job.deadline)}</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            ${job.skills.slice(0, 3).map(skill => `<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">${skill}</span>`).join('')}
+                        </div>
+                        <button onclick="applyForJob(${job.id})" class="w-full gradient-bg text-white py-2 rounded-lg font-semibold hover:opacity-90 transition">
+                            Apply Now
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterJobs() {
+            renderJobs();
+        }
+
+        // Page Navigation
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(page + 'Page').classList.remove('hidden');
+            
+            if (page === 'profile') {
+                updateProfilePage();
+            }
+            
+            window.scrollTo(0, 0);
+        }
+
+        function updateProfilePage() {
+            const notLoggedIn = document.getElementById('notLoggedIn');
+            const studentDashboard = document.getElementById('studentDashboard');
+            const adminDashboard = document.getElementById('adminDashboard');
+            
+            notLoggedIn.classList.add('hidden');
+            studentDashboard.classList.add('hidden');
+            adminDashboard.classList.add('hidden');
+            
+            if (!currentUser) {
+                notLoggedIn.classList.remove('hidden');
+                return;
+            }
+            
+            if (currentUser.role === 'admin') {
+                adminDashboard.classList.remove('hidden');
+                renderAdminDashboard();
+            } else {
+                studentDashboard.classList.remove('hidden');
+                renderStudentDashboard();
+            }
+        }
+
+        function renderStudentDashboard() {
+            document.getElementById('studentName').textContent = currentUser.name;
+            document.getElementById('studentEmail').textContent = currentUser.email;
+            
+            const myApps = applications.filter(app => app.userId === currentUser.email);
+            document.getElementById('studentApplied').textContent = myApps.length;
+            document.getElementById('studentShortlisted').textContent = myApps.filter(a => a.status === 'shortlisted').length;
+            document.getElementById('studentInterviews').textContent = myApps.filter(a => a.status === 'interview').length;
+            
+            const container = document.getElementById('myApplications');
+            if (myApps.length === 0) {
+                container.innerHTML = '<div class="text-center py-10 text-gray-500"><i class="fas fa-inbox text-4xl mb-4"></i><p>No applications yet. Start applying!</p></div>';
+                return;
+            }
+            
+            container.innerHTML = myApps.map(app => {
+                const job = jobs.find(j => j.id === app.jobId);
+                const statusColors = {
+                    pending: 'bg-yellow-100 text-yellow-600',
+                    shortlisted: 'bg-green-100 text-green-600',
+                    interview: 'bg-blue-100 text-blue-600',
+                    rejected: 'bg-red-100 text-red-600'
+                };
+                return `
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800">${job?.title || 'Unknown Position'}</h3>
+                                <p class="text-purple-600 font-semibold">${job?.company || 'Unknown Company'}</p>
+                                <p class="text-gray-500 text-sm mt-2">Applied on ${formatDate(app.appliedDate)}</p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-sm font-semibold ${statusColors[app.status]}">${app.status.charAt(0).toUpperCase() + app.status.slice(1)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderAdminDashboard() {
+            document.getElementById('adminTotalJobs').textContent = jobs.length;
+            document.getElementById('adminTotalApps').textContent = applications.length;
+            document.getElementById('adminTotalStudents').textContent = users.filter(u => u.role === 'student').length;
+            document.getElementById('adminActiveJobs').textContent = jobs.filter(j => new Date(j.deadline) > new Date()).length;
+            
+            renderAdminJobs();
+            renderAdminApplications();
+        }
+
+        function renderAdminJobs() {
+            const container = document.getElementById('adminJobsList');
+            container.innerHTML = jobs.map(job => `
+                <div class="bg-gray-50 rounded-xl p-6 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">${job.title}</h3>
+                        <p class="text-purple-600">${job.company}</p>
+                        <p class="text-gray-500 text-sm">${job.type === 'internship' ? 'Internship' : 'Full-time'} • ${job.location}</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm">${applications.filter(a => a.jobId === job.id).length} Applications</span>
+                        <button onclick="deleteJob(${job.id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAdminApplications() {
+            const container = document.getElementById('adminApplicationsList');
+            if (applications.length === 0) {
+                container.innerHTML = '<div class="text-center py-10 text-gray-500"><i class="fas fa-inbox text-4xl mb-4"></i><p>No applications received yet</p></div>';
+                return;
+            }
+            
+            container.innerHTML = applications.map(app => {
+                const job = jobs.find(j => j.id === app.jobId);
+                return `
+                    <div class="bg-gray-50 rounded-xl p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">${app.name}</h3>
+                                <p class="text-gray-600">${app.email} • ${app.phone}</p>
+                                <p class="text-purple-600 text-sm">Applied for: ${job?.title || 'Unknown'} at ${job?.company || 'Unknown'}</p>
+                            </div>
+                            <select onchange="updateApplicationStatus('${app.id}', this.value)" class="border rounded-lg px-3 py-1 text-sm">
+                                <option value="pending" ${app.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                <option value="shortlisted" ${app.status === 'shortlisted' ? 'selected' : ''}>Shortlisted</option>
+                                <option value="interview" ${app.status === 'interview' ? 'selected' : ''}>Interview</option>
+                                <option value="rejected" ${app.status === 'rejected' ? 'selected' : ''}>Rejected</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div><span class="text-gray-500">Department:</span> ${app.department}</div>
+                            <div><span class="text-gray-500">Year:</span> ${app.year}</div>
+                            <div><span class="text-gray-500">CGPA:</span> ${app.cgpa}</div>
+                            <div><span class="text-gray-500">Skills:</span> ${app.skills}</div>
+                        </div>
+                        ${app.resumeName ? `<p class="mt-2 text-sm text-green-600"><i class="fas fa-file-pdf mr-1"></i>Resume: ${app.resumeName}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showAdminTab(tab) {
+            document.getElementById('adminJobsTab').classList.add('hidden');
+            document.getElementById('adminApplicationsTab').classList.add('hidden');
+            document.getElementById('tabJobs').classList.remove('text-purple-600', 'border-purple-600');
+            document.getElementById('tabApplications').classList.remove('text-purple-600', 'border-purple-600');
+            document.getElementById('tabJobs').classList.add('text-gray-500');
+            document.getElementById('tabApplications').classList.add('text-gray-500');
+            
+            if (tab === 'jobs') {
+                document.getElementById('adminJobsTab').classList.remove('hidden');
+                document.getElementById('tabJobs').classList.add('text-purple-600', 'border-purple-600');
+                document.getElementById('tabJobs').classList.remove('text-gray-500');
+            } else {
+                document.getElementById('adminApplicationsTab').classList.remove('hidden');
+                document.getElementById('tabApplications').classList.add('text-purple-600', 'border-purple-600');
+                document.getElementById('tabApplications').classList.remove('text-gray-500');
+            }
+        }
+
+        function showPostJobForm() {
+            document.getElementById('postJobForm').classList.remove('hidden');
+        }
+
+        function hidePostJobForm() {
+            document.getElementById('postJobForm').classList.add('hidden');
+            document.getElementById('newJobForm').reset();
+        }
+
+        function deleteJob(id) {
+            if (confirm('Are you sure you want to delete this job?')) {
+                jobs = jobs.filter(j => j.id !== id);
+                localStorage.setItem('jobs', JSON.stringify(jobs));
+                renderAdminDashboard();
+                renderJobs();
+                showToast('Job deleted successfully!');
+            }
+        }
+
+        function updateApplicationStatus(id, status) {
+            const app = applications.find(a => a.id === id);
+            if (app) {
+                app.status = status;
+                localStorage.setItem('applications', JSON.stringify(applications));
+                showToast('Application status updated!');
+            }
+        }
+
+        // Modal Functions
+        function showModal(type) {
+            document.getElementById(type + 'Modal').classList.remove('hidden');
+        }
+
+        function hideModal(type) {
+            document.getElementById(type + 'Modal').classList.add('hidden');
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        }
+
+        // Authentication
+        function setupFormHandlers() {
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('signupForm').addEventListener('submit', handleSignup);
+            document.getElementById('applicationForm').addEventListener('submit', handleApplication);
+            document.getElementById('newJobForm').addEventListener('submit', handlePostJob);
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const role = document.getElementById('loginRole').value;
+            
+            const user = users.find(u => u.email === email && u.password === password && u.role === role);
+            
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                hideModal('login');
+                updateAuthUI();
+                showToast('Login successful! Welcome back, ' + user.name);
+                showPage('profile');
+            } else {
+                alert('Invalid credentials or user not found!');
+            }
+        }
+
+        function handleSignup(e) {
+            e.preventDefault();
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupConfirmPassword').value;
+            const role = document.getElementById('signupRole').value;
+            
+            if (password !== confirmPassword) {
+                alert('Passwords do not match!');
+                return;
+            }
+            
+            if (getPasswordStrength(password).score < 2) {
+                alert('Please use a stronger password!');
+                return;
+            }
+            
+            if (users.find(u => u.email === email)) {
+                alert('Email already registered!');
+                return;
+            }
+            
+            const newUser = { name, email, password, role };
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            currentUser = newUser;
+            localStorage.setItem('currentUser', JSON.stringify(newUser));
+            
+            hideModal('signup');
+            updateAuthUI();
+            showToast('Account created successfully! Welcome, ' + name);
+            showPage('profile');
+        }
+
+        async function logout() {
+            // If Supabase client is available, sign out there as well
+            if (window.supabase) {
+                try {
+                    await window.supabase.auth.signOut();
+                } catch (err) {
+                    console.error('Supabase signOut error', err);
+                }
+            }
+
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            updateAuthUI();
+            showPage('home');
+            showToast('Logged out successfully!');
+        }
+
+        function updateAuthUI() {
+            const authButtons = document.getElementById('authButtons');
+            const userMenu = document.getElementById('userMenu');
+            const userName = document.getElementById('userName');
+            const mobileAuthButtons = document.getElementById('mobileAuthButtons');
+            const mobileUserMenu = document.getElementById('mobileUserMenu');
+            const mobileUserName = document.getElementById('mobileUserName');
+            
+            if (currentUser) {
+                authButtons.classList.add('hidden');
+                userMenu.classList.remove('hidden');
+                userName.textContent = currentUser.name;
+                mobileAuthButtons.classList.add('hidden');
+                mobileUserMenu.classList.remove('hidden');
+                mobileUserName.textContent = currentUser.name + ' (' + currentUser.role + ')';
+            } else {
+                authButtons.classList.remove('hidden');
+                userMenu.classList.add('hidden');
+                mobileAuthButtons.classList.remove('hidden');
+                mobileUserMenu.classList.add('hidden');
+            }
+        }
+
+        // Job Application
+        function applyForJob(jobId) {
+            if (!currentUser) {
+                showModal('login');
+                return;
+            }
+            
+            if (currentUser.role === 'admin') {
+                alert('Admins cannot apply for jobs!');
+                return;
+            }
+            
+            if (applications.find(a => a.jobId === jobId && a.userId === currentUser.email)) {
+                alert('You have already applied for this job!');
+                return;
+            }
+            
+            const job = jobs.find(j => j.id === jobId);
+            document.getElementById('applyJobId').value = jobId;
+            document.getElementById('applyJobTitle').textContent = job.title + ' at ' + job.company;
+            document.getElementById('appName').value = currentUser.name;
+            document.getElementById('appEmail').value = currentUser.email;
+            showModal('application');
+        }
+
+        async function handleApplication(e) {
+            e.preventDefault();
+            
+            const resumeFile = document.getElementById('appResume').files[0];
+            
+            const application = {
+                id: Date.now().toString(),
+                jobId: parseInt(document.getElementById('applyJobId').value),
+                userId: currentUser ? currentUser.email : null,
+                name: document.getElementById('appName').value,
+                phone: document.getElementById('appPhone').value,
+                email: document.getElementById('appEmail').value,
+                department: document.getElementById('appDepartment').value,
+                year: document.getElementById('appYear').value,
+                cgpa: document.getElementById('appCGPA').value,
+                backlogs: document.getElementById('appBacklogs').value,
+                skills: document.getElementById('appSkills').value,
+                coverLetter: document.getElementById('appCoverLetter').value,
+                resumeName: resumeFile ? resumeFile.name : null,
+                status: 'pending',
+                appliedDate: new Date().toISOString().split('T')[0]
+            };
+            
+            // Save locally first
+            applications.push(application);
+            localStorage.setItem('applications', JSON.stringify(applications));
+            
+            // Attempt to sync with Supabase (include the authenticated user's id)
+            if (window.supabase) {
+                try {
+                    const { data: userData, error: userErr } = await supabase.auth.getUser();
+                    const supabaseUser = userData?.user ?? null;
+
+                    const appForDb = {
+                        user_id: supabaseUser ? supabaseUser.id : null,
+                        job_id: application.jobId,
+                        name: application.name,
+                        email: application.email,
+                        phone: application.phone,
+                        department: application.department,
+                        year: application.year,
+                        cgpa: application.cgpa,
+                        backlogs: application.backlogs,
+                        status: application.status,
+                        created_at: new Date().toISOString()
+                    };
+
+                    const { data, error } = await supabase.from('applications').insert([appForDb]);
+                    if (error) {
+                        console.error('Supabase insert error', error);
+                        showToast('Saved locally but failed to sync with server.');
+                    } else {
+                        showToast('Application submitted and synced ✅');
+                    }
+                } catch (err) {
+                    console.error('Error submitting to Supabase', err);
+                    showToast('Saved locally but failed to sync with server.');
+                }
+            } else {
+                showToast('Application submitted successfully!');
+            }
+            
+            hideModal('application');
+            document.getElementById('applicationForm').reset();
+        }
+
+        function handlePostJob(e) {
+            e.preventDefault();
+            
+            const newJob = {
+                id: Date.now(),
+                company: document.getElementById('jobCompany').value,
+                title: document.getElementById('jobTitle').value,
+                type: document.getElementById('jobType').value,
+                salary: document.getElementById('jobSalary').value,
+                location: document.getElementById('jobLocation').value,
+                departments: document.getElementById('jobDepts').value.split(',').map(d => d.trim()),
+                skills: document.getElementById('jobSkills').value.split(',').map(s => s.trim()),
+                description: document.getElementById('jobDescription').value,
+                deadline: document.getElementById('jobDeadline').value,
+                posted: new Date().toISOString().split('T')[0]
+            };
+            
+            jobs.unshift(newJob);
+            localStorage.setItem('jobs', JSON.stringify(jobs));
+            
+            if (document.getElementById('sendNotification').checked) {
+                showNotification(newJob);
+            }
+            
+            hidePostJobForm();
+            renderAdminDashboard();
+            renderJobs();
+            showToast('Job posted successfully!');
+        }
+
+        // Password Strength
+        function checkPasswordStrength() {
+            const password = document.getElementById('signupPassword').value;
+            const result = getPasswordStrength(password);
+            
+            const fill = document.getElementById('passwordStrengthFill');
+            const text = document.getElementById('passwordStrengthText');
+            
+            fill.style.width = (result.score * 25) + '%';
+            fill.className = 'h-full rounded-full transition-all ' + result.color;
+            text.textContent = result.label;
+            text.className = 'text-sm mt-1 ' + result.textColor;
+        }
+
+        function getPasswordStrength(password) {
+            let score = 0;
+            if (password.length >= 8) score++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+            if (/\d/.test(password)) score++;
+            if (/[^a-zA-Z0-9]/.test(password)) score++;
+            
+            const levels = [
+                { score: 0, label: '', color: 'bg-gray-300', textColor: 'text-gray-500' },
+                { score: 1, label: 'Weak', color: 'bg-red-500', textColor: 'text-red-500' },
+                { score: 2, label: 'Fair', color: 'bg-yellow-500', textColor: 'text-yellow-500' },
+                { score: 3, label: 'Good', color: 'bg-blue-500', textColor: 'text-blue-500' },
+                { score: 4, label: 'Strong', color: 'bg-green-500', textColor: 'text-green-500' }
+            ];
+            
+            return { ...levels[score], score };
+        }
+
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // Notifications
+        function showNotification(job) {
+            document.getElementById('notificationText').textContent = `${job.company} is hiring for ${job.title}!`;
+            document.getElementById('notificationBanner').classList.remove('hidden');
+            
+            console.log('Email notification sent to all students about:', job.title);
+        }
+
+        function hideNotification() {
+            document.getElementById('notificationBanner').classList.add('hidden');
+        }
+
+        // Toast
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Utilities
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        // ============================================
+        // AI CHATBOT FUNCTIONS
+        // ============================================
+
+        function toggleChatbot() {
+            isChatbotOpen = !isChatbotOpen;
+            const chatWindow = document.getElementById('chatbotWindow');
+            const chatButton = document.getElementById('chatbotButton');
+            
+            if (isChatbotOpen) {
+                chatWindow.classList.add('open');
+                chatButton.innerHTML = '<i class="fas fa-times"></i>';
+            } else {
+                chatWindow.classList.remove('open');
+                chatButton.innerHTML = '<i class="fas fa-comments"></i>';
+            }
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendQuickMessage(message) {
+            document.getElementById('chatbotInput').value = message;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatbotInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+            input.value = '';
+            
+            // Disable send button and show typing indicator
+            const sendButton = document.getElementById('chatbotSend');
+            sendButton.disabled = true;
+            showTypingIndicator();
+            
+            try {
+                // Attempt to send message to backend proxy at /api/chat
+                const resp = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, history: chatHistory, system: getSystemPrompt() })
+                });
+
+                // If backend exists but returns non-JSON or non-OK, fall through to catch
+                const data = await resp.json();
+
+                // Remove typing indicator
+                removeTypingIndicator();
+
+                if (!resp.ok) {
+                    throw new Error(data.error || 'Server returned an error');
+                }
+
+                // Extract response text
+                const botResponse = data.reply || 'Sorry, I did not get a reply.';
+                
+                // Add bot response to chat
+                addMessageToChat(botResponse, 'bot');
+                
+                // Update chat history
+                chatHistory.push(
+                    { role: 'user', content: message },
+                    { role: 'assistant', content: botResponse }
+                );
+                
+                // Keep only last 10 messages in history to manage context
+                if (chatHistory.length > 20) {
+                    chatHistory = chatHistory.slice(-20);
+                }
+                
+            } catch (error) {
+                // Backend not available or returned error — use local fallback responder
+                console.warn('Chatbot backend error, using local fallback:', error);
+
+                try {
+                    const local = await localRespond(message);
+                    removeTypingIndicator();
+                    const botResponse = local.reply || 'Sorry, I could not process that.';
+                    addMessageToChat(botResponse, 'bot');
+
+                    chatHistory.push(
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: botResponse }
+                    );
+
+                    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+                } catch (localErr) {
+                    removeTypingIndicator();
+                    addMessageToChat('Sorry, I encountered an error. Please try again later.', 'bot');
+                    console.error('Local chatbot error:', localErr);
+                }
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        // Local fallback responder (works offline for testing)
+        function localRespond(message) {
+            return new Promise(resolve => {
+                const msg = message.toLowerCase();
+
+                // Simple intent matching
+                if (msg.includes('job') || msg.includes('available')) {
+                    const topJobs = jobs.slice(0, 3).map(j => `${j.company}: ${j.title} (${j.location})`).join('\n');
+                    return setTimeout(() => resolve({ reply: `Here are some open roles:\n${topJobs}` }), 600);
+                }
+
+                if (msg.includes('interview') || msg.includes('prepare')) {
+                    return setTimeout(() => resolve({ reply: `Interview tips:\n1) Research the company\n2) Practice coding and behavioral questions\n3) Prepare questions for the interviewer` }), 600);
+                }
+
+                if (msg.includes('company') || msg.includes('companies') || msg.includes('top')) {
+                    const companies = [...new Set(jobs.map(j => j.company))].slice(0,5).join(', ');
+                    return setTimeout(() => resolve({ reply: `Top companies on our platform include: ${companies}` }), 600);
+                }
+
+                // Default fallback
+                return setTimeout(() => resolve({ reply: `I'm a local assistant. I can list jobs, give interview tips, or mention top companies. Try asking: "What jobs are available?"` }), 600);
+            });
+        }
+
+        function getSystemPrompt() {
+            const jobsList = jobs.map(j => 
+                `${j.company} - ${j.title} (${j.type}) - ${j.salary} - Location: ${j.location} - Departments: ${j.departments.join(', ')} - Skills: ${j.skills.join(', ')}`
+            ).join('\n');
+            
+            const userContext = currentUser ? 
+                `The user is logged in as ${currentUser.name} (${currentUser.role}).` : 
+                'The user is not logged in.';
+            
+            return `You are a helpful career assistant for Degree To Desk, a campus placement platform. You help students with:
+- Finding job opportunities and internships
+- Interview preparation tips
+- Resume and career advice
+- Information about companies and placements
+
+${userContext}
+
+Available jobs on the platform:
+${jobsList}
+
+Be friendly, concise, and helpful. When discussing jobs, provide specific details from the available listings. Encourage students to apply through the portal. If asked about features or navigation, guide them appropriately.`;
+        }
+
+        function addMessageToChat(text, sender) {
+            const messagesContainer = document.getElementById('chatbotMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = text;
+            
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('chatbotMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot';
+            typingDiv.id = 'typingIndicator';
+            
+            typingDiv.innerHTML = `
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+    </script>
+
+    <!-- Supabase Integration -->
+    <script type="module">
+        // Import the Supabase client (ES module via CDN)
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+        // TODO: Replace these placeholders with your Supabase project values
+        // Supabase URL format: https://xxxxx.supabase.co
+        // Supabase ANON KEY is safe for frontend usage (public anon key)
+        const SUPABASE_URL = 'https://icehtsgqdclkkvynaqrc.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljZWh0c2dxZGNsa2t2eW5hcXJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMTU4MDIsImV4cCI6MjA4NTY5MTgwMn0.PTNZ9gvE31tis3oHq45xR5l3MBzNwiOFrIRKthJkh2A'
+
+        // Create a global Supabase client
+        window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+        // Keep UI in sync with auth state
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            const user = session?.user ?? null
+            if (user) {
+                // Build a friendly currentUser object and persist locally
+                currentUser = { id: user.id, email: user.email, name: user.user_metadata?.name || '', role: user.user_metadata?.role || 'student', user_metadata: user.user_metadata || {} }
+                localStorage.setItem('currentUser', JSON.stringify(currentUser))
+                updateAuthUI()
+
+                // Ensure a profile row exists for this user (upsert)
+                try {
+                    await supabase.from('profiles').upsert({ id: user.id, full_name: currentUser.name, role: currentUser.role }, { returning: 'minimal' })
+                } catch (err) {
+                    console.warn('Profile upsert failed', err)
+                }
+
+                // Optionally fetch the profile and merge any server-stored fields into currentUser
+                try {
+                    const { data: profile, error: pErr } = await supabase.from('profiles').select('*').eq('id', user.id).limit(1).maybeSingle()
+                    if (!pErr && profile) {
+                        currentUser.name = profile.full_name || currentUser.name
+                        currentUser.role = profile.role || currentUser.role
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser))
+                        updateAuthUI()
+                    }
+                } catch (err) {
+                    console.warn('Failed to fetch profile', err)
+                }
+
+            } else {
+                currentUser = null
+                localStorage.removeItem('currentUser')
+                updateAuthUI()
+            }
+        })
+
+        // Hook signup form to Supabase Auth
+        const signupForm = document.getElementById('signupForm')
+        if (signupForm) {
+            signupForm.addEventListener('submit', async (e) => {
+                e.preventDefault()
+                const role = document.getElementById('signupRole').value
+                const name = document.getElementById('signupName').value
+                const email = document.getElementById('signupEmail').value
+                const password = document.getElementById('signupPassword').value
+
+                try {
+                    const { data, error } = await supabase.auth.signUp({
+                        email,
+                        password,
+                        options: { data: { name, role } }
+                    })
+
+                    if (error) {
+                        showToast('Sign up error: ' + error.message)
+                        return
+                    }
+
+                    showToast('Sign up successful. Please check your email if confirmation is required.')
+                } catch (err) {
+                    console.error(err)
+                    showToast('Sign up failed. See console for details.')
+                }
+            })
+        }
+
+        // Hook login form to Supabase Auth
+        const loginForm = document.getElementById('loginForm')
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault()
+                const email = document.getElementById('loginEmail').value
+                const password = document.getElementById('loginPassword').value
+
+                try {
+                    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+                    if (error) {
+                        showToast('Login error: ' + error.message)
+                        return
+                    }
+                    showToast('Login successful')
+                    // onAuthStateChange will update UI
+                } catch (err) {
+                    console.error(err)
+                    showToast('Login failed. See console for details.')
+                }
+            })
+        }
+
+        // Example: submit application to Supabase 'applications' table
+        async function submitApplicationToSupabase(app) {
+            try {
+                const { data, error } = await supabase.from('applications').insert([app])
+                if (error) {
+                    console.error(error)
+                    showToast('Failed to submit application: ' + error.message)
+                } else {
+                    showToast('Application submitted successfully ✅')
+                }
+            } catch (err) {
+                console.error(err)
+                showToast('Application submission failed. See console for details.')
+            }
+        }
+
+        // Application submission is handled by the app's `handleApplication` function
+        // which saves locally and syncs to Supabase (if available). Do not attach another listener here to avoid duplicates.
+
+        // Quick dev tip: use the browser console to run queries, e.g.:
+        // await supabase.from('profiles').select('*')
+    </script>
+</body>
+</html>
